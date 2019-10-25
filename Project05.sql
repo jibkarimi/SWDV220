@@ -1,8 +1,7 @@
-
 /*******************************************************************/
 /*	JIB Karimi													   */
-/*	10/18/19													   */
-/*	Project 04													   */
+/*	10/25/19													   */
+/*	Project 05													   */
 /*																   */
 /*******************************************************************/
 
@@ -70,7 +69,7 @@ create table artist (
 create table disk (
 	disk_id 		int not null identity primary key,
 	disk_name		nvarchar(100) not null,
-	realse_date		date not null,
+	release_date		date not null,
 	genre_id		int not null references genre(genre_id),
 	status_id		int not null references status(status_id),
 	disk_type_id	int not null references disk_type(disk_type_id)
@@ -107,7 +106,14 @@ if USER_ID('diskjk') is null
 alter role db_datareader add member diskjk;
 go
 
+
+
+
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--
+
+
+
+
 
 -- Add INSERT Genre
 
@@ -215,7 +221,7 @@ GO
 -- Add INSERT INTO Disk table
 INSERT INTO [dbo].[disk]
 	 ([disk_name]
-	 ,[realse_date]
+	 ,[release_date]
 	 ,[genre_id]
 	 ,[status_id]
 	 ,[disk_type_id])
@@ -244,7 +250,7 @@ GO
 
 -- Add UPDATE disk_release_date where the disk_id is 20
 UPDATE disk
-SET realse_date = '7/11/2019'
+SET release_date = '7/11/2019'
 WHERE disk_id = 20
 
 
@@ -316,15 +322,13 @@ WHERE returned_date is NULL;
 
 
 
-
-
 --*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--
 
 
 
 --3. Show the disks in your database and any associated Individual artists only. Sort by Artist Last Name, First Name & Disk Name.
 
-select disk_name as 'Disk Name', convert(varchar(10), realse_date, 101) as 'Release Date', 
+select disk_name as 'Disk Name', convert(varchar(10), release_date, 101) as 'Release Date', 
 	fname as 'Artist First Name', lname as 'Artist last Name'
 from disk
 join diskHasArtist on disk.disk_id = diskHasArtist.disk_id
@@ -352,7 +356,7 @@ from View_Individual_Artist;
 --5. Show the disks in your database and any associated Group artists only. Use the View_Individual_Artist view. Sort by Group Name & Disk Name.
 
 --disks in database and any associated Group artists.
-select disk_name as 'Disk Name', convert(varchar(10), realse_date, 101) as 'Release Date', 
+select disk_name as 'Disk Name', convert(varchar(10), release_date, 101) as 'Release Date', 
 	fname as 'Group Name'
 from disk
 join diskHasArtist on disk.disk_id = diskHasArtist.disk_id
@@ -403,3 +407,358 @@ join borrower on borrower.borrower_id = diskHasborrower.borrower_id
 where returned_date is null
 --Sort by disk name
 order by disk_name;
+
+
+
+--*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--
+
+
+
+--Project 5
+
+--Create Insert, Update, and Delete stored procedures for the artist table. Update procedure accepts a primary key value and the artist’s names for update. Insert accepts all columns as input parameters except for identity fields. Delete accepts a primary key value for delete.
+--Script file includes all required ‘GO’ statements.
+--Stored procedures/execs contain error processing (try-catch).
+--Script file includes all execute statements needed to invoke each stored procedure.
+
+
+
+USE disk_inventoryjk
+GO
+--Drop if sp_InsArtist exists
+DROP PROC IF EXISTS sp_InsArtist;
+GO
+
+CREATE PROC sp_InsArtist
+	@fname nvarchar(100),
+	@artist_type_id int,
+	@lname nvarchar(100) = NULL
+AS
+BEGIN TRY
+	INSERT INTO [dbo].[artist]
+           ([fname]
+           ,[lname]
+           ,[artist_type_id])
+     VALUES
+          	(@fname,
+			 @lname,
+			 @artist_type_id)
+END TRY
+
+BEGIN CATCH
+--error message
+  PRINT 'An error occurd. Row was inserted. '
+  PRINT 'Error number: '+
+   CONVERT(varchar(100), ERROR_NUMBER());
+  PRINT 'Error number: '+
+   CONVERT(varchar(100), ERROR_MESSAGE());
+END CATCH
+
+EXEC sp_InsArtist 'Bruno', 1, 'Marssssss'
+EXEC sp_InsArtist 'Cherrrrrr', 1
+EXEC sp_InsArtist 'Cherrrrrrr', null
+
+
+
+select * 
+from artist
+
+
+
+--Drop if sp_UpdArtist exists
+DROP PROC IF EXISTS sp_UpdArtist;
+GO 
+
+CREATE PROC sp_UpdArtist
+	@artist_id int,
+	@fname nvarchar(100),
+	@artist_type_id int,
+	@lname nvarchar(100) = NULL
+AS
+BEGIN TRY 
+			UPDATE  [dbo].[artist]
+			SET		[fname] = @fname
+				   ,[artist_type_id] = @artist_type_id
+				   ,[lname] = @lname
+		    where   artist_id = @artist_id;
+END TRY
+BEGIN CATCH
+--error message
+	  PRINT 'An error occurd. Row was inserted.';
+	  PRINT 'Error number: '+
+		CONVERT(varchar(100), ERROR_NUMBER());
+	  PRINT 'Error number: '+
+		CONVERT(varchar(100), ERROR_MESSAGE());
+END CATCH
+
+-- Execute insert data 
+EXEC sp_UpdArtist 25, 'Bruno', 1, 'Mars'
+EXEC sp_UpdArtist 24, 'Cherrrrrr', 1
+EXEC sp_UpdArtist 24, 'Cherrrrrrr', null
+
+
+--Drop if sp_DelArtis exist
+DROP PROC IF EXISTS sp_DelArtist;
+GO
+
+--Create sp_DelArtist
+CREATE PROC sp_DelArtist
+	@artist_id int
+AS
+
+--TRY and CATCH 
+BEGIN TRY
+	 DELETE FROM [dbo].[Artist]
+	 WHERE artist_id = @artist_id
+END TRY
+BEGIN CATCH
+--error message
+			PRINT 'An error occurd. Row was inserted. '
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_NUMBER());
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_MESSAGE());
+END CATCH
+GO
+
+EXEC sp_DelArtist 28
+EXEC sp_DelArtist NULL
+GO
+
+
+
+--Drop if sp_InsBorrower exist
+DROP PROC IF EXISTS sp_InsBorrower;
+GO
+
+--Create sp_InsBorrower
+CREATE PROC sp_InsBorrower
+	@fname nvarchar(100),
+	@phone_num nvarchar(50),
+	@lname nvarchar(100) 
+AS
+--TRY and CATCH
+BEGIN TRY
+
+INSERT INTO [dbo].[Borrower]
+           ([fname]
+           ,[lname]
+           ,[phone_num])
+     VALUES
+	        (@fname,
+			 @lname,
+			 @phone_num)
+END TRY
+BEGIN CATCH
+--error message
+			PRINT 'An error occurd. Row was inserted. '
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_NUMBER());
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_MESSAGE());
+END CATCH
+GO
+
+-- Execute insert data 
+EXEC  sp_InsBorrower 'JIB', 1234567899999,  'Boise'
+EXEC  sp_InsBorrower 'Karimi', 1123123, NULL 
+EXEC  sp_InsBorrower '$%#', NULL
+GO
+
+
+SELECT * 
+FROM Borrower
+GO
+
+--Drop if sp_UpdBorrower exist
+DROP PROC IF EXISTS sp_UpdBorrower;
+GO
+
+--Create sp_UpdBorrower
+CREATE PROC sp_UpdBorrower
+--Parameters
+	@borrower_id int,
+	@fname nvarchar(100),
+	@phone_num nvarchar(50),
+	@lname nvarchar(100) 
+	
+AS
+--TRY and CATCH
+BEGIN TRY
+	UPDATE [dbo].[borrower]
+	   SET [fname] = @fname
+		  ,[lname] = @lname
+		  ,[phone_num] = @phone_num
+	 WHERE borrower_id = @borrower_id
+
+END TRY
+BEGIN CATCH
+--error message 
+			PRINT 'An error occurd. Row was inserted. '
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_NUMBER());
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_MESSAGE());
+		END CATCH
+GO
+
+--Execute update data
+EXEC sp_UpdBorrower 19, 'Joe', 'Qurbanii', 123564654
+EXEC sp_UpdBorrower 21, 'Jack',987654321, NULL 
+EXEC sp_UpdBorrower 21, 'Robin', NULL		  
+GO
+
+
+
+--Drop if sp_DelBorrower exist
+DROP PROC IF EXISTS sp_DelBorrower;
+GO
+
+--Create sp_DelBorrower
+CREATE PROC sp_DelBorrower
+	@borrower_id int
+AS
+--TRY and CATCH
+ 
+BEGIN TRY
+	DELETE FROM [dbo].[borrower]
+	 WHERE borrower_id = @borrower_id
+
+END TRY
+BEGIN CATCH
+--error message
+			PRINT 'An error occurd. Row was inserted. '
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_NUMBER());
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_MESSAGE());
+END CATCH
+GO
+
+-- Execute delete data
+EXEC sp_DelBorrower 21
+EXEC sp_DelBorrower NULL  
+GO
+
+--Drop if sp_InsDisk exist
+DROP PROC IF EXISTS sp_InsDisk;
+GO
+
+--Create sp_InsDisk
+CREATE PROC sp_InsDisk
+--Parameters
+			    @disk_name nvarchar(100)
+			   ,@release_date date
+			   ,@genre_id int
+			   ,@status_id int
+			   ,@disk_type_id int
+AS
+--TRY and CATCH 
+BEGIN TRY
+	INSERT INTO [dbo].[disk]
+			   ([disk_name]
+			   ,[release_date]
+			   ,[genre_id]
+			   ,[status_id]
+			   ,[disk_type_id])
+		 VALUES
+			    (@disk_name
+			   ,@release_date
+			   ,@genre_id
+			   ,@status_id
+			   ,@disk_type_id)
+END TRY
+BEGIN CATCH
+--error message
+			PRINT 'An error occurd. Row was inserted. '
+			PRINT 'Error number: '+
+			--returns the number of the error
+				CONVERT(varchar(100), ERROR_NUMBER());
+			PRINT 'Error number: '+
+			--returns the complete text of the error message
+				CONVERT(varchar(100), ERROR_MESSAGE());
+END CATCH
+GO
+
+--Execute insert data 
+EXEC  sp_InsDisk 'disk1', '01/01/2018', 1,2,3
+EXEC  sp_InsDisk 'disk4', NULL, 3,2,1 
+EXEC  sp_InsDisk 'disk4', NULL		  
+GO
+
+SELECT * 
+FROM Disk
+GO
+
+
+--Drop if sp_UpdDisk exist
+DROP PROC IF EXISTS sp_UpdDisk;
+GO
+
+--Create sp_UpdDisk
+CREATE PROC sp_UpdDisk
+		  @disk_id int
+		 ,@disk_name nvarchar(100)
+		 ,@release_date date
+		 ,@genre_id int
+		 ,@status_id int
+		 ,@disk_type_id int
+AS
+--TRY and CATCH
+BEGIN TRY
+	UPDATE [dbo].[disk]
+	   SET [disk_name] = @disk_name
+		  ,[release_date] = @release_date 
+		  ,[genre_id] = @genre_id
+		  ,[status_id] = @status_id
+		  ,[disk_type_id] = @disk_type_id
+	WHERE disk_id = @disk_id
+END TRY
+BEGIN CATCH
+--error message
+			PRINT 'An error occurd. Row was inserted. '
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_NUMBER());
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_MESSAGE());
+END CATCH
+GO
+
+--Execute statement
+EXEC sp_UpdDisk 23, 'disk4', '01/01/2015', 1,2,3
+EXEC sp_UpdDisk 23, 'tim',NULL, 3,2,1			
+EXEC sp_UpdDisk 23, 'sccot', '01-10-2012',2 ,2 
+GO
+
+
+
+--Drop if sp_DelDisk exist
+DROP PROC IF EXISTS sp_DelDisk;
+GO
+
+--Create sp_DelDisk
+CREATE PROC sp_DelDisk
+	@disk_id int
+AS
+
+--TRY and CATCH
+BEGIN TRY
+	DELETE FROM [dbo].[disk]
+	 WHERE disk_id = @disk_id
+
+END TRY
+BEGIN CATCH
+--error message
+			PRINT 'An error occurd. Row was inserted. '
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_NUMBER());
+			PRINT 'Error number: '+
+				CONVERT(varchar(100), ERROR_MESSAGE());
+		END CATCH
+GO
+
+-- Execute delete data 
+EXEC sp_DelDisk 19
+EXEC sp_DelDisk NULL
+GO
+
